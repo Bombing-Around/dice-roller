@@ -1,0 +1,93 @@
+/* Custom styles for Dice Roller */
+
+/* Smooth transitions for screen switching */
+#home-screen, #room-screen {
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Roll entry animation */
+.log-entry {
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dice result highlight */
+.roll-total {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Critical roll styling */
+.roll-critical {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.roll-fumble {
+  color: #ef4444;
+}
+
+/* User online indicator */
+.user-online::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+/* Note entry styling */
+.log-entry-note {
+  border-left: 3px solid #6b7280;
+  background: rgba(107, 114, 128, 0.1);
+}
+
+/* Roll entry styling */
+.log-entry-roll {
+  border-left: 3px solid #f97316;
+  background: rgba(249, 115, 22, 0.1);
+}
+
+/* Insert note button */
+.insert-note-btn {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.log-entry:hover .insert-note-btn {
+  opacity: 1;
+}
+
+/* Room code copy feedback */
+.copy-success {
+  color: #22c55e !important;
+}

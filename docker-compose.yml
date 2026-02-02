@@ -1,0 +1,12 @@
+version: '3'
+services:
+  soketi:
+    image: quay.io/soketi/soketi:latest-16-debian
+    ports:
+      - "6001:6001"
+    environment:
+      - SOKETI_DEFAULT_APP_ID=dice-roller
+      - SOKETI_DEFAULT_APP_KEY=dice-roller-key
+      - SOKETI_DEFAULT_APP_SECRET=dice-roller-secret
+      - SOKETI_DEFAULT_APP_ENABLE_CLIENT_MESSAGES=true
+      - SOKETI_DEBUG=1

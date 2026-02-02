@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dice Roller - Multiplayer TTRPG Dice</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+  
+  <!-- Home Screen -->
+  <div id="home-screen" class="min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full mx-4">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-orange-400 mb-2">Dice Roller</h1>
+        <p class="text-gray-400">Multiplayer TTRPG Dice Rolling</p>
+      </div>
+      
+      <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
+        <!-- Create Room -->
+        <div class="mb-6">
+          <button id="create-room-btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+            Create New Room
+          </button>
+        </div>
+        
+        <!-- Join Room -->
+        <div class="border-t border-gray-700 pt-6">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Join Existing Room</label>
+          <div class="flex gap-2">
+            <input 
+              type="text" 
+              id="room-code-input" 
+              placeholder="Enter room code"
+              maxlength="6"
+              class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 uppercase"
+            >
+            <button id="join-room-btn" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+              Join
+            </button>
+          </div>
+          <p id="join-error" class="text-red-400 text-sm mt-2 hidden"></p>
+        </div>
+      </div>
+      
+      <p class="text-center text-gray-500 text-sm mt-4">
+        No account needed. Rooms are temporary.
+      </p>
+    </div>
+  </div>
+
+  <!-- Room Screen -->
+  <div id="room-screen" class="min-h-screen hidden">
+    <div class="flex h-screen">
+      
+      <!-- Sidebar -->
+      <div class="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+        <!-- Room Info -->
+        <div class="p-4 border-b border-gray-700">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-gray-400">ROOM CODE</span>
+            <button id="leave-room-btn" class="text-xs text-red-400 hover:text-red-300">Leave</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="room-code-display" class="text-xl font-mono font-bold text-orange-400"></span>
+            <button id="copy-code-btn" class="text-gray-400 hover:text-white" title="Copy code">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+            </button>
+          </div>
+          <input 
+            type="text" 
+            id="room-name-input" 
+            placeholder="Session name (optional)"
+            class="mt-2 w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+          >
+        </div>
+        
+        <!-- User Info -->
+        <div class="p-4 border-b border-gray-700">
+          <label class="text-xs text-gray-400 block mb-1">YOUR NAME</label>
+          <input 
+            type="text" 
+            id="user-name-input" 
+            placeholder="Enter your name"
+            maxlength="50"
+            class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+          >
+        </div>
+        
+        <!-- Users List -->
+        <div class="flex-1 overflow-y-auto p-4">
+          <h3 class="text-xs text-gray-400 mb-2">PLAYERS IN ROOM</h3>
+          <ul id="users-list" class="space-y-1">
+            <!-- Users populated by JS -->
+          </ul>
+        </div>
+        
+        <!-- Export Button -->
+        <div class="p-4 border-t border-gray-700">
+          <button id="export-log-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-3 rounded transition duration-200">
+            Export Log (JSON)
+          </button>
+        </div>
+      </div>
+      
+      <!-- Main Content -->
+      <div class="flex-1 flex flex-col">
+        
+        <!-- Dice Input Area -->
+        <div class="bg-gray-800 border-b border-gray-700 p-4">
+          <div class="max-w-3xl mx-auto">
+            <!-- Quick Dice Buttons -->
+            <div class="flex flex-wrap gap-2 mb-3">
+              <button class="dice-btn bg-gray-700 hover:bg-orange-600 px-3 py-1 rounded text-sm transition" data-dice="d4">d4</button>
+              <button class="dice-btn bg-gray-700 hover:bg-orange-600 px-3 py-1 rounded text-sm transition" data-dice="d6">d6</button>
+              <button class="dice-btn bg-gray-700 hover:bg-orange-600 px-3 py-1 rounded text-sm transition" data-dice="d8">d8</button>
+              <button class="dice-btn bg-gray-700 hover:bg-orange-600 px-3 py-1 rounded text-sm transition" data-dice="d10">d10</button>
+              <button class="dice-btn bg-gray-700 hover:bg-orange-600 px-3 py-1 rounded text-sm transition" data-dice="d12">d12</button>
+              <button class="dice-btn bg-gray-700 hover:bg-orange-600 px-3 py-1 rounded text-sm transition" data-dice="d16">d16</button>
+              <button class="dice-btn bg-gray-700 hover:bg-orange-600 px-3 py-1 rounded text-sm transition" data-dice="d20">d20</button>
+              <button class="dice-btn bg-gray-700 hover:bg-orange-600 px-3 py-1 rounded text-sm transition" data-dice="d100">d100</button>
+            </div>
+            
+            <!-- Dice Notation Input -->
+            <div class="flex gap-2">
+              <input 
+                type="text" 
+                id="dice-input" 
+                placeholder="e.g., 2d20+5, 4d6, d100"
+                class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+              >
+              <button id="roll-btn" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-200">
+                Roll
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Add Note Area -->
+        <div class="bg-gray-850 border-b border-gray-700 p-3 bg-gray-800/50">
+          <div class="max-w-3xl mx-auto">
+            <div class="flex gap-2">
+              <input 
+                type="text" 
+                id="note-input" 
+                placeholder="Add a note to the log..."
+                class="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-1 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+              >
+              <button id="add-note-btn" class="bg-gray-600 hover:bg-gray-500 text-white text-sm py-1 px-4 rounded transition duration-200">
+                Add Note
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Log/History -->
+        <div class="flex-1 overflow-y-auto p-4" id="log-container">
+          <div class="max-w-3xl mx-auto space-y-3" id="log-list">
+            <!-- Log entries populated by JS -->
+            <p id="empty-log-message" class="text-center text-gray-500 py-8">
+              No rolls yet. Roll some dice to get started!
+            </p>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <!-- Pusher SDK -->
+  <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+  
+  <!-- App Scripts -->
+  <script src="js/dice.js"></script>
+  <script src="js/pusher-service.js"></script>
+  <script src="js/data-service.js"></script>
+  <script src="js/room.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

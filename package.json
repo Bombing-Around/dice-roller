@@ -1,0 +1,12 @@
+{
+  "name": "dice-roller",
+  "version": "1.0.0",
+  "description": "Multiplayer TTRPG dice roller with real-time sync",
+  "scripts": {
+    "start": "node server.js",
+    "soketi": "docker-compose up",
+    "dev": "echo 'Run in 2 terminals:' && echo '  1. docker-compose up  (Soketi)' && echo '  2. npm start          (App)'"
+  },
+  "keywords": ["dice", "ttrpg", "multiplayer", "websocket"],
+  "license": "MIT"
+}
