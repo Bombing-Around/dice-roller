@@ -262,6 +262,12 @@ const PusherService = (function() {
       if (onLogChanged) onLogChanged(roomState.log);
       if (onUsersChanged) onUsersChanged(roomState.users);
       if (onRoomNameChanged) onRoomNameChanged(roomState.name);
+      
+      // Resolve pending join if waiting
+      if (stateSyncResolver) {
+        stateSyncResolver();
+        stateSyncResolver = null;
+      }
     }
   }
   
@@ -322,6 +328,8 @@ const PusherService = (function() {
     return { success: true };
   }
   
+  let stateSyncResolver = null;
+  
   async function joinRoom(roomCode, userId, userName) {
     currentUserId = userId;
     currentUserName = userName;
@@ -342,6 +350,17 @@ const PusherService = (function() {
       timestamp: Date.now()
     });
     
+    // Wait for state sync with timeout
+    const stateSyncPromise = new Promise(resolve => {
+      stateSyncResolver = resolve;
+      
+      // Timeout after 1.5s - room might be empty or we're the first
+      setTimeout(() => {
+        stateSyncResolver = null;
+        resolve();
+      }, 1500);
+    });
+    
     // Request state from existing users
     setTimeout(() => {
       broadcastEvent('state-sync-request', {
@@ -349,6 +368,7 @@ const PusherService = (function() {
       });
     }, 100);
     
+    await stateSyncPromise;
     return { success: true };
   }
   
