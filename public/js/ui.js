@@ -201,14 +201,21 @@ const UI = (function() {
     let resultsHTML = '';
     if (entry.results && Array.isArray(entry.results)) {
       const resultParts = entry.results.map(group => {
-        if (group.rolls && group.rolls.length > 1) {
-          return `<span class="text-gray-400">${group.dice}:</span> [${group.rolls.join(', ')}]`;
-        } else if (group.rolls && group.rolls.length === 1) {
-          return `<span class="text-gray-400">${group.dice}:</span> [${group.rolls[0]}]`;
-        }
-        return '';
+        if (!group.rolls || group.rolls.length === 0) return '';
+        const values = group.rolls.length > 1
+          ? escapeHTML(group.rolls.join(', '))
+          : escapeHTML(String(group.rolls[0]));
+        return {
+          // A group parsed from e.g. "2d20-1d6" carries sign -1; older log
+          // entries predate the field and are treated as added.
+          negative: group.sign === -1,
+          html: `<span class="text-gray-400">${escapeHTML(group.dice)}:</span> [${values}]`
+        };
       }).filter(Boolean);
-      resultsHTML = resultParts.join(' + ');
+      resultsHTML = resultParts.reduce((str, part, index) => {
+        if (index === 0) return part.negative ? `- ${part.html}` : part.html;
+        return str + (part.negative ? ' - ' : ' + ') + part.html;
+      }, '');
     }
     
     // Total with critical/fumble styling
@@ -225,9 +232,9 @@ const UI = (function() {
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <span class="${totalClass}">${entry.total}</span>
+        <span class="${totalClass}">${escapeHTML(String(entry.total))}</span>
         <div class="flex-1">
-          <div class="text-sm text-gray-300">${entry.notation}</div>
+          <div class="text-sm text-gray-300">${escapeHTML(entry.notation)}</div>
           <div class="text-xs text-gray-500">${resultsHTML}</div>
         </div>
       </div>
@@ -267,7 +274,7 @@ const UI = (function() {
     
     return `
       <div class="flex justify-between items-start mb-1">
-        <span class="text-sm ${isOwn ? 'text-orange-400' : 'text-gray-400'}">${entry.userName}</span>
+        <span class="text-sm ${isOwn ? 'text-orange-400' : 'text-gray-400'}">${escapeHTML(entry.userName)}</span>
         <span class="text-xs text-gray-500">${time}</span>
       </div>
       <div class="text-gray-200 whitespace-pre-wrap">${escapeHTML(entry.content)}</div>
@@ -434,12 +441,17 @@ const UI = (function() {
   
   /**
    * Escape HTML to prevent XSS
+   * Escapes &, <, >, ", and ' so the result is safe to interpolate into
+   * both HTML text content and quoted HTML attribute values.
    * @param {string} str - String to escape
    */
   function escapeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
   
   /**

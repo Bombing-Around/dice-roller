@@ -156,7 +156,7 @@ const App = (function() {
     if (result.success) {
       // Update URL hash
       window.location.hash = result.roomCode;
-      UI.showRoomScreen(result.roomCode, result.userName);
+      UI.showRoomScreen(result.roomCode, result.userName, result.roomName);
       UI.showToast('Room created!', 'success');
     } else {
       UI.showToast('Failed to create room: ' + result.error, 'error');

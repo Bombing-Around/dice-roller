@@ -54,10 +54,15 @@ const RoomManager = (function() {
       const stored = localStorage.getItem(USER_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Support both old (odUserId) and new (userId) formats
-        const odUserId = parsed.odUserId || parsed.odUserId;
+        // Support both current (odUserId) and legacy (userId) formats
+        const odUserId = parsed.odUserId || parsed.userId;
         if (odUserId && parsed.userName) {
-          return { odUserId, userName: parsed.userName };
+          const identity = { odUserId, userName: parsed.userName };
+          if (!parsed.odUserId) {
+            // Migrate legacy identity to the current format on disk
+            saveUserIdentity(identity);
+          }
+          return identity;
         }
       }
     } catch (e) {
@@ -105,19 +110,23 @@ const RoomManager = (function() {
     const identity = getOrCreateUserIdentity();
     const odUserId = identity.odUserId;
     const userName = identity.userName;
-    
-    await PusherService.createRoom(roomCode, odUserId, userName);
-    setupPusherCallbacks();
-    
+
+    // Set current room/user state and wire callbacks before awaiting the
+    // Pusher round trip, so any events that arrive while it's in flight
+    // (e.g. state sync) have somewhere to land.
     currentRoom = roomCode;
     currentUserId = odUserId;
     currentUserName = userName;
-    
+    setupPusherCallbacks();
+
+    await PusherService.createRoom(roomCode, odUserId, userName);
+
     return {
       success: true,
       roomCode,
       odUserId,
-      userName
+      userName,
+      roomName: PusherService.getRoomState().name || ''
     };
   }
   
@@ -133,22 +142,27 @@ const RoomManager = (function() {
     const identity = getOrCreateUserIdentity();
     const odUserId = identity.odUserId;
     const userName = identity.userName;
-    
-    // In Pusher mode, any room code is valid
-    // First joiner "creates" it, others join the same channel
-    await PusherService.joinRoom(normalizedCode, odUserId, userName);
-    setupPusherCallbacks();
-    
+
+    // Set current room/user state and wire callbacks before awaiting the
+    // Pusher round trip. PusherService.joinRoom() awaits the state-sync
+    // response internally, so the callbacks (and currentUserId/currentRoom)
+    // must already be valid by the time that response is handled, or the
+    // synced history never reaches the UI.
     currentRoom = normalizedCode;
     currentUserId = odUserId;
     currentUserName = userName;
-    
+    setupPusherCallbacks();
+
+    // In Pusher mode, any room code is valid
+    // First joiner "creates" it, others join the same channel
+    await PusherService.joinRoom(normalizedCode, odUserId, userName);
+
     return {
       success: true,
       roomCode: normalizedCode,
       odUserId,
       userName,
-      roomName: ''
+      roomName: PusherService.getRoomState().name || ''
     };
   }
   
