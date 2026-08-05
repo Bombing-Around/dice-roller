@@ -201,9 +201,9 @@ const PusherService = (function() {
       joinedAt: data.timestamp
     };
     if (onUsersChanged) onUsersChanged(roomState.users);
-    
+
     // If we're an existing user, send state to new user
-    if (data.userId !== currentUserId && Object.keys(roomState.log).length > 0) {
+    if (data.userId !== currentUserId && hasSyncableState()) {
       // Small delay to avoid race conditions
       setTimeout(() => {
         broadcastEvent('state-sync-response', {
@@ -233,12 +233,24 @@ const PusherService = (function() {
   
   function handleStateSyncRequest(data) {
     // Another user is requesting state
-    if (data.requesterId !== currentUserId && Object.keys(roomState.log).length > 0) {
+    if (data.requesterId !== currentUserId && hasSyncableState()) {
       broadcastEvent('state-sync-response', {
         targetUserId: data.requesterId,
         state: roomState
       });
     }
+  }
+
+  /**
+   * Whether our local room state has anything worth sharing with a
+   * newly-joined or syncing user (users, room name, or log entries).
+   * A joined client always has at least itself in roomState.users, so
+   * this is true for any client that has completed create/join.
+   */
+  function hasSyncableState() {
+    return Object.keys(roomState.users).length > 0 ||
+      Object.keys(roomState.log).length > 0 ||
+      !!roomState.name;
   }
   
   function handleStateSyncResponse(data) {

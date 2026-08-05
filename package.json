@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "soketi": "docker-compose up",
-    "dev": "echo 'Run in 2 terminals:' && echo '  1. docker-compose up  (Soketi)' && echo '  2. npm start          (App)'"
+    "dev": "echo 'Run in 2 terminals:' && echo '  1. docker-compose up  (Soketi)' && echo '  2. npm start          (App)'",
+    "test": "node --test test/*.test.js"
   },
   "keywords": ["dice", "ttrpg", "multiplayer", "websocket"],
   "license": "MIT"

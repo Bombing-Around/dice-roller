@@ -2,7 +2,7 @@
 
 Reference document for continuing development on the Dice Roller project.
 
-## Current State (Feb 2026)
+## Current State (Aug 2026)
 
 Working MVP with:
 - Real-time multiplayer dice rolling via Soketi (Pusher-compatible WebSocket server)
@@ -51,6 +51,8 @@ Soketi/Pusher requires server-side authentication to broadcast events. The Node 
 | `public/js/app.js` | Main app, event wiring |
 | `public/js/data-service.js` | Connection status tracking |
 | `docker-compose.yml` | Soketi configuration |
+| `test/dice.test.js` | Dice parser/roller tests (`npm test`) |
+| `.github/workflows/ci.yml` | Syntax check + tests on Node 22/24 |
 
 ## State Sync Strategy
 
@@ -61,15 +63,30 @@ Rooms don't persist on the server. State is distributed across connected clients
 3. User A detects join, sends state-sync-response with full room state
 4. User B merges received state into local state
 
+Callbacks must be wired **before** awaiting `PusherService.createRoom/joinRoom`
+— those calls await the state-sync round trip internally, so a callback wired
+afterwards is null at the moment the synced state arrives and the history
+never reaches the DOM. `RoomManager` does this ordering deliberately; don't
+move `setupPusherCallbacks()` back below the await.
+
 **Known issue:** If multiple users exist when someone joins, all send state (causes duplicate broadcasts but works).
+
+**Known issue:** Log order is assigned client-side as `localMax + 1`, so two
+simultaneous rolls get the same `order` and clients can display them in
+different sequences. Needs a tiebreak (e.g. `createdAt` then `userId`) or
+server-assigned ordering.
 
 ## TODO / Future Work
 
 ### High Priority
+- [ ] Authentication on `/broadcast` — it validates channel/event/size and
+      rate-limits per IP, but is still unauthenticated: anyone who can reach
+      the port and guess a room code can broadcast into that room
 - [ ] Reconnection handling when WebSocket drops
-- [ ] Rate limiting on `/broadcast` endpoint
+- [ ] Deterministic log ordering across clients (see above)
 - [ ] Room cleanup (memory leak - rooms live forever)
 - [ ] Better error feedback when broadcast fails
+- [x] Rate limiting on `/broadcast` endpoint
 
 ### Nice to Have
 - [ ] Dice roll animations
@@ -80,9 +97,14 @@ Rooms don't persist on the server. State is distributed across connected clients
 - [ ] Mobile-responsive improvements
 
 ### Production Deployment
-- [ ] Configure for production Pusher (update `PROD_CONFIG` in pusher-service.js)
+- [ ] Configure for production Pusher (update `PROD_CONFIG` in pusher-service.js).
+      **Note:** `PusherService.init()` currently hardcodes `cluster: 'mt1'` and
+      `forceTLS: false` and passes `wsHost`/`wsPort` from the local config, so
+      the production path cannot connect as written — this needs fixing before
+      `PROD_CONFIG` is of any use.
 - [ ] Add HTTPS/TLS
-- [ ] Environment variables for secrets
+- [x] Environment variables for secrets (`server.js` reads `PORT`, `SOKETI_HOST`,
+      `SOKETI_PORT`, `SOKETI_DEFAULT_APP_{ID,KEY,SECRET}`)
 - [ ] Proper logging
 - [ ] Health check endpoint
 

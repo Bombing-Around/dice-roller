@@ -15,51 +15,54 @@ A multiplayer TTRPG dice roller with real-time sync. Create a room, share the co
 
 ## Quick Start
 
-### Single Browser (tabs only)
+The app needs **two** processes: a Soketi WebSocket server and the Node app
+server. There is no offline or single-process mode — without Soketi the app
+loads but refuses to create or join rooms.
 
-Just serve the files - tabs in the same browser sync automatically:
-
-```bash
-npx serve public -p 3000
-```
-
-Open http://localhost:3000 in multiple tabs.
-
-### Multi-Browser Local Testing
-
-For testing across different browsers (Chrome + Firefox, etc.), run Soketi:
-
-**Option A: Docker (easiest)**
-```bash
-# Terminal 1: Start Soketi via Docker
-docker run -p 6001:6001 -e SOKETI_DEFAULT_APP_ID=dice-roller -e SOKETI_DEFAULT_APP_KEY=dice-roller-key -e SOKETI_DEFAULT_APP_SECRET=dice-roller-secret -e SOKETI_DEFAULT_APP_ENABLE_CLIENT_MESSAGES=true quay.io/soketi/soketi:latest-16-debian
-
-# Terminal 2: Start web server
-npx serve public -p 3000
-```
-
-**Option B: npm**
 ```bash
 # Terminal 1: Start Soketi
-npm run soketi
+docker-compose up      # or: npm run soketi
 
-# Terminal 2: Start web server  
-npm run start
+# Terminal 2: Start the app server
+npm start
 ```
 
-Now open http://localhost:3000 in Chrome AND Firefox - they'll sync in real-time!
+Open http://localhost:3000 in as many browsers as you like — they sync in
+real-time. The app auto-detects Soketi on localhost and connects
+automatically.
 
-> The app auto-detects Soketi on localhost and connects automatically.
+> `npx serve public` is **not** enough. Broadcasts are relayed through
+> `server.js`, which signs them with the Soketi app secret; serving the
+> static files alone gives you a UI that cannot sync.
+
+## Configuration
+
+`server.js` reads its settings from the environment, falling back to the
+values in `docker-compose.yml` so local development needs no setup:
+
+| Variable | Default |
+|---|---|
+| `PORT` | `3000` |
+| `SOKETI_HOST` | `localhost` |
+| `SOKETI_PORT` | `6001` |
+| `SOKETI_DEFAULT_APP_ID` | `dice-roller` |
+| `SOKETI_DEFAULT_APP_KEY` | `dice-roller-key` |
+| `SOKETI_DEFAULT_APP_SECRET` | `dice-roller-secret` |
+
+## Tests
+
+```bash
+npm test
+```
+
+Runs the dice-notation suite with the built-in Node test runner. No
+dependencies, no build step. CI runs the same command on Node 22 and 24,
+plus a `node --check` syntax pass over every JS file.
 
 ## Modes
 
-### Local Mode
-- Syncs between tabs in the same browser via BroadcastChannel
-- Data persists in localStorage  
-- Falls back to this if Soketi isn't running
-
 ### Soketi Mode (Local Development)
-- Syncs across different browsers on same machine
+- Syncs across different browsers on the same machine
 - Auto-detected when running on localhost with Soketi
 - Run `docker-compose up` or `npm run soketi`
 
@@ -79,12 +82,16 @@ const PROD_CONFIG = {
 
 ## Deployment
 
-The app is static files only - deploy anywhere:
+This is **not** a static site. `public/` is served by `server.js`, which also
+relays broadcasts to Soketi/Pusher using the app secret — so deployment needs
+a Node process, not just a CDN. A static host will serve the UI but rolls
+will never reach anyone else.
 
-- **GitHub Pages**: Push to `gh-pages` branch
-- **Netlify**: Drag & drop the `public` folder
-- **Vercel**: Connect your repo
-- **Any static host**: Upload the `public` folder
+Before deploying publicly, note that `POST /broadcast` is **unauthenticated**.
+It validates the channel format, the event name, the payload size, and applies
+per-IP rate limiting, but anyone who can reach the port and guess a 6-character
+room code can broadcast into that room. Adding real authentication is an open
+item — see `DEVELOPMENT.md`.
 
 ## Usage
 
@@ -102,6 +109,7 @@ The app is static files only - deploy anywhere:
 - `2d6` - Roll two d6
 - `4d6+3` - Roll four d6 and add 3
 - `2d20-1` - Roll two d20 and subtract 1
+- `2d20-1d6` - Roll two d20 and subtract a d6
 - `d100` - Roll percentile (1-100)
 
 Supported dice: d4, d6, d8, d10, d12, d16, d20, d100
@@ -109,22 +117,25 @@ Supported dice: d4, d6, d8, d10, d12, d16, d20, d100
 ## Tech Stack
 
 - **Frontend**: Vanilla JavaScript + Tailwind CSS (via CDN)
-- **Local Sync**: localStorage + BroadcastChannel API
-- **Remote Sync**: Pusher Channels (optional)
+- **Server**: Node core modules only — no dependencies, no build step
+- **Sync**: Soketi (local) or Pusher Channels (production)
 
 ## File Structure
 
 ```
+server.js                   # Node server - static files + event relay to Soketi
+docker-compose.yml          # Soketi configuration
+test/
+└── dice.test.js            # Dice parser/roller tests (node --test)
 public/
 ├── index.html              # Single page app
 ├── css/styles.css          # Custom styles
 └── js/
     ├── app.js              # Main app, event wiring
-    ├── data-service.js     # Mode detection (local vs pusher)
+    ├── data-service.js     # Connection status tracking
     ├── dice.js             # Dice parser and roller
-    ├── local-storage.js    # Local mode implementation
-    ├── pusher-service.js   # Pusher mode implementation
-    ├── room.js             # Room management
+    ├── pusher-service.js   # WebSocket connection, events, state sync
+    ├── room.js             # Room management, user identity
     └── ui.js               # UI rendering
 ```
 
